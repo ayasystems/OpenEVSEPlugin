@@ -3,8 +3,13 @@
 # Author: EA4GKQ Ángel
 # https://github.com/OpenEVSE/ESP8266_WiFi_v2.x/blob/master/Developers_Guides/Developers%20Guide_MQTT.pdf
 """
-<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.0" wikilink="https://domotuto.com" externallink="https://www.github.com">
- 
+<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.0" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
+     <description>
+        <h2>OpenEVSE MQTT Plugin</h2><br/>
+        Los datos de consumo son aproximados ya que OpenEVSE no tiene sensor de voltaje. Se toma como referencia 235v
+        <h3>by @ea4gkq</h3>
+        Visita https://domotuto.com/integracion-domoticz-openevse-mqtt/
+    </description>
     <params>
         <param field="Address" label="MQTT Server address" width="300px" required="true" default="127.0.0.1"/>
         <param field="Port" label="Port" width="300px" required="true" default="1883"/>
