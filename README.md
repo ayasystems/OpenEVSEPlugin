@@ -35,3 +35,6 @@ git pull
 sudo systemctl start domoticz
 ```
 **Me gustaría agradecer a [Alexander Nagy](https://github.com/enesbcs) su plugin sirvió de inspiración y ejemplo para el desarrollo de este plugin
+
+
+![OpenEVSE_Plugin](https://github.com/ayasystems/OpenEVSEPlugin/raw/master/openevse_plugin.jpg)
