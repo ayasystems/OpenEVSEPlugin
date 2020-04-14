@@ -155,8 +155,8 @@ class BasePlugin:
               Domoticz.Debug("MQTT connected pilot.")#Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=8,Used=1,DeviceID=unitname).Create()
              elif subval=="state":
               Options =   {   "LevelActions"  :"||||||" , 
-                              "LevelNames"    :"Off|Disconnected|Connected|Charging|Error|Timer|WatingEv" ,
-                              "LevelOffHidden":"true",
+                              "LevelNames"    :"Disable|Disconnected|Connected|Charging|Error|Timer|WatingEv" ,
+                              "LevelOffHidden":"false",
                               "SelectorStyle" :"1"
               }			  
               Domoticz.Device(Name=unitname,  Unit=iUnit, TypeName="Selector Switch", Switchtype=18, Image=12, Options=Options, Used=1,DeviceID=unitname).Create()
