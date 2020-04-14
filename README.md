@@ -1,2 +1,38 @@
 # OpenEVSEPlugin
 OpenEVSE mqtt domoticz plugin
+
+## Instalación
+
+## Installation
+
+1. Clona el repositorio dentro de tu carpeta de plugins de domoticz
+```
+cd domoticz/plugins
+git clone https://github.com/ayasystems/OpenEVSEPlugin.git
+```
+2. Reinicia domotiz
+```
+sudo systemctl stop domoticz
+sudo systemctl start domoticz
+```
+3. Ve a la página de "Hardware" y añade un nuevo hardware, en tipo selecciona "OpenEVSE mqtt plugin"
+4. Especifica tu servidor MQTT y el topic de tu OpenEVSE
+5. Recuerda permitir añadir nuevos dispositivos en el menú de ajustes
+
+
+## Plugin update
+
+
+1. Para domoticz 
+```
+sudo systemctl stop domoticz
+```
+2. Ve al directorio del plugin y haz un git pull para que actualice la versión 
+```
+cd domoticz/plugins/OpenEVSEPlugin
+git pull
+```
+3. Start domoticz
+```
+sudo systemctl start domoticz
+```
