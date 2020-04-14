@@ -3,8 +3,6 @@ OpenEVSE mqtt domoticz plugin
 
 ## Instalación
 
-## Installation
-
 1. Clona el repositorio dentro de tu carpeta de plugins de domoticz
 ```
 cd domoticz/plugins
@@ -20,7 +18,7 @@ sudo systemctl start domoticz
 5. Recuerda permitir añadir nuevos dispositivos en el menú de ajustes
 
 
-## Plugin update
+## Actualización del plugin
 
 
 1. Para domoticz 
@@ -36,3 +34,4 @@ git pull
 ```
 sudo systemctl start domoticz
 ```
+**Me gustaría agradecer a [Alexander Nagy](https://github.com/enesbcs) su plugin sirvió de inspiración y ejemplo para el desarrollo de este plugin
