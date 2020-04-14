@@ -3,6 +3,9 @@ OpenEVSE mqtt domoticz plugin
 
 ![OpenEVSE_Plugin](https://github.com/ayasystems/OpenEVSEPlugin/raw/master/openevse_plugin.jpg)
 
+
+[Link en domotuto](https://domotuto.com/integracion-domoticz-openevse-mqtt/) 
+
 ## Instalación
 
 1. Clona el repositorio dentro de tu carpeta de plugins de domoticz
