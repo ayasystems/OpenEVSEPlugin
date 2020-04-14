@@ -17,11 +17,15 @@
         <param field="Password" label="Password" width="300px" default="" password="true"/>
         <param field="Mode1" label="Topic" width="125px" default="openevse"/>
 
-        <param field="Mode6" label="Debug" width="75px">
+        <param field="Mode6" label="Debug" width="150px">
             <options>
-                <option label="Verbose" value="Verbose"/>
-                <option label="True" value="Debug"/>
-                <option label="False" value="Normal" default="true" />
+                <option label="None" value="0"  default="true" />
+                <option label="Python Only" value="2"/>
+                <option label="Basic Debugging" value="62"/>
+                <option label="Basic+Messages" value="126"/>
+                <option label="Connections Only" value="16"/>
+                <option label="Connections+Queue" value="144"/>
+                <option label="All" value="-1"/>
             </options>
         </param>
 
@@ -69,11 +73,9 @@ class BasePlugin:
      if errmsg =="":
       try:
         Domoticz.Heartbeat(10)
-        self.debugging = Parameters["Mode6"]
-        if self.debugging == "Verbose":
-            Domoticz.Debugging(2+4+8+16+64)
-        if self.debugging == "Debug":
-            Domoticz.Debugging(2)
+        if Parameters["Mode6"] != "0":
+            Domoticz.Debugging(int(Parameters["Mode6"]))
+            DumpConfigToLog()
         self.base_topic = Parameters["Mode1"].strip() # hardwired
         self.mqttserveraddress = Parameters["Address"].strip()
         self.mqttserverport = Parameters["Port"].strip()
