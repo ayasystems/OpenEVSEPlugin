@@ -6,6 +6,8 @@ OpenEVSE mqtt domoticz plugin
 
 [Link en domotuto](https://domotuto.com/integracion-domoticz-openevse-mqtt/) 
 
+
+OpenEvSe es un cargador para vehículos electricos que permite control via Wifi. Para más información sobre OpenEvSe ir a la web del fabricante [OpenEvSe web](https://www.openevse.com/) 
 ## Instalación
 
 1. Clona el repositorio dentro de tu carpeta de plugins de domoticz
