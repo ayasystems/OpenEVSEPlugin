@@ -3,7 +3,7 @@
 # Author: EA4GKQ Ángel
 # https://github.com/OpenEVSE/ESP8266_WiFi_v2.x/blob/master/Developers_Guides/Developers%20Guide_MQTT.pdf
 """
-<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.0" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
+<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.1" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
         <h2>OpenEVSE MQTT Plugin</h2><br/>
         Los datos de consumo son aproximados ya que OpenEVSE no tiene sensor de voltaje. Se toma como referencia 235v
@@ -152,6 +152,7 @@ class BasePlugin:
               Domoticz.Debug("Creamos amp.")#Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Switch",Used=1,DeviceID=unitname).Create()
               Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()
              elif subval=="pilot":
+              Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()              
               Domoticz.Debug("MQTT connected pilot.")#Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=8,Used=1,DeviceID=unitname).Create()
              elif subval=="state":
               Options =   {   "LevelActions"  :"||||||" , 
@@ -186,8 +187,18 @@ class BasePlugin:
             Domoticz.Debug(str(e))
             return False
           elif subval=="pilot":
-            Domoticz.Debug("MQTT connected pilot.")#Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=8,Used=1,DeviceID=unitname).Create()
+           try:
+            mval = float(str(message).strip())
+           except:
+            mval = str(message).strip()
+           try:
+            Devices[iUnit].Update(nValue=0,sValue=str(mval))
+           except Exception as e:
+            Domoticz.Debug(str(e))
             return False
+           pilot = float(str(message).strip())
+           Domoticz.Debug("pilot: "+str(pilot))  
+           return False		
           elif subval=="amp":
            try:
             mval = float(str(message).strip())/1000
