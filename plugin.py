@@ -3,7 +3,7 @@
 # Author: EA4GKQ Ángel
 # https://github.com/OpenEVSE/ESP8266_WiFi_v2.x/blob/master/Developers_Guides/Developers%20Guide_MQTT.pdf
 """
-<plugin key="OpenEvSe_Plug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.1" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
+<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.0" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
         <h2>OpenEVSE MQTT Plugin</h2><br/>
         Los datos de consumo son aproximados ya que OpenEVSE no tiene sensor de voltaje. Se toma como referencia 235v
@@ -57,7 +57,7 @@ try:
 except Exception as e:
  errmsg += " MQTT client import error: "+str(e)
 
-class OpenEvSe_Plug:
+class BasePlugin:
     enabled = False
     mqttConn = None
     counter = 0
@@ -227,6 +227,8 @@ class OpenEvSe_Plug:
              mval="30"
            elif (mval=="4"):
              mval="40"
+           elif (mval=="255"):
+             mval="0"
            try:
             #Devices[iUnit].Update(1,str(mval))
             UpdateDevice(iUnit, 1, str(mval))
@@ -305,7 +307,7 @@ class OpenEvSe_Plug:
         Domoticz.Error(str(e))
 
 global _plugin
-_plugin = OpenEvSe_Plug()
+_plugin = BasePlugin()
 
 def onStart():
     global _plugin
