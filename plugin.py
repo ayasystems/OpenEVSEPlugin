@@ -2,8 +2,11 @@
 #
 # Author: EA4GKQ Ángel
 # https://github.com/OpenEVSE/ESP8266_WiFi_v2.x/blob/master/Developers_Guides/Developers%20Guide_MQTT.pdf
+# 
+# 25/05/2020
+# Se añade Switch EcoMode
 """
-<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.0" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
+<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.2" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
         <h2>OpenEVSE MQTT Plugin</h2><br/>
         Los datos de consumo son aproximados ya que OpenEVSE no tiene sensor de voltaje. Se toma como referencia 235v
@@ -65,6 +68,8 @@ class BasePlugin:
     errmsg = ""
     subval = ""
     amperios = 0	
+    read_time = time.time()
+    elapsed_time = 0
     def __init__(self):
         return
 
@@ -126,7 +131,9 @@ class BasePlugin:
           if (mqttpath[1] == "wh"):
             unitname="Energy"
             subval="wh"
-
+          if (mqttpath[1] == "divertmode"):
+            unitname="EcoMode"
+            subval="divertmode"
 
           iUnit = -1
           for Device in Devices:
@@ -166,7 +173,9 @@ class BasePlugin:
               iUnit=iUnit+1
               Domoticz.Device(Name="Start", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Start").Create()
               iUnit=iUnit+1
-              Domoticz.Device(Name="Stop", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Stop").Create()			  
+              Domoticz.Device(Name="Stop", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Stop").Create()	
+              iUnit=iUnit+1
+              Domoticz.Device(Name="EcoMode", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="EcoMode").Create()              
              elif subval=="wh":
               Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=29,Switchtype=0,Used=1,DeviceID=unitname).Create()
               Domoticz.Debug("MQTT connected wh.")
@@ -177,22 +186,24 @@ class BasePlugin:
 
 
           if subval=="temp1":
+           self.read_time = time.time()
            try:
             mval = float(str(message).strip())/10
            except:
             mval = str(message).strip()
            try:
-            Devices[iUnit].Update(nValue=0,sValue=str(mval))
+            Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
            except Exception as e:
             Domoticz.Debug(str(e))
             return False
           elif subval=="pilot":
+           self.read_time = time.time()
            try:
             mval = float(str(message).strip())
            except:
             mval = str(message).strip()
            try:
-            Devices[iUnit].Update(nValue=0,sValue=str(mval))
+            Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
            except Exception as e:
             Domoticz.Debug(str(e))
             return False
@@ -200,12 +211,13 @@ class BasePlugin:
            Domoticz.Debug("pilot: "+str(pilot))  
            return False		
           elif subval=="amp":
+           self.read_time = time.time()
            try:
             mval = float(str(message).strip())/1000
            except:
             mval = str(message).strip()
            try:
-            Devices[iUnit].Update(nValue=0,sValue=str(mval))
+            Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
            except Exception as e:
             Domoticz.Debug(str(e))
             return False
@@ -213,6 +225,7 @@ class BasePlugin:
            Domoticz.Debug("Amp: "+str(amperios))  
            return False		   
           elif subval=="state":
+           self.read_time = time.time()
            try:
             mval = str(message).strip()
            except:
@@ -236,6 +249,7 @@ class BasePlugin:
             Domoticz.Debug(str(e))
             return False
           elif subval=="wh":
+              self.read_time = time.time()
               Domoticz.Debug("Proceso wh")
               voltaje = 235
               watts = amperios * voltaje
@@ -246,12 +260,20 @@ class BasePlugin:
               except:
                mval = str(message).strip()
               try:
-               Devices[iUnit].Update(nValue=0,sValue=str(watts)+";"+str(mval))
+               Devices[iUnit].Update(nValue=0,sValue=str(watts)+";"+str(mval),TimedOut=0)
                Domoticz.Debug("Update["+str(iUnit)+"]: "+str(watts)+";"+str(mval))
               except Exception as e:
                Domoticz.Debug(str(e))
                return False			  
               Domoticz.Debug("MQTT connected wh/kwh "+str(watts)+" / "+str(mval))#Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=29,Used=1,DeviceID=unitname).Create()
+          elif subval=="divertmode": 
+           mval = str(message).strip()
+           Domoticz.Debug("divertmode: "+str(mval))
+           if(mval=="2"):
+            UpdateDevice(iUnit, 1, "On")
+           elif(mval=="1"):
+            UpdateDevice(iUnit, 0, "Off")
+           
     # executed each time we click on device thru domoticz GUI
     #def onCommand(Unit, Command, Level, Hue):
     def onCommand(self, Unit, Command, Level, Color):  #
@@ -277,6 +299,17 @@ class BasePlugin:
            self.mqttClient.publish(rapiTopic, "")
           except Exception as e:
            Domoticz.Debug(str(e))
+        if(Devices[Unit].DeviceID=="EcoMode"):
+           Domoticz.Error(Devices[Unit].sValue)
+           rapiTopic = self.base_topic + "/divertmode/set"#FE ENABLE #FD DISABLE
+           divertmode = "2"
+           if(str(Devices[Unit].sValue)=="1"):
+            divertmode = "1"
+           if self.mqttClient is not None:
+            try:
+             self.mqttClient.publish(rapiTopic, divertmode)
+            except Exception as e:
+             Domoticz.Debug(str(e))           
     def onConnect(self, Connection, Status, Description):
         if (Status == 0):
             Domoticz.Debug("MQTT connected successfully.")
@@ -305,6 +338,12 @@ class BasePlugin:
             self.mqttClient.ping()
        except Exception as e:
         Domoticz.Error(str(e))
+      self.elapsed_time = time.time() - self.read_time
+      if(self.elapsed_time>60):
+        Domoticz.Error("Last data: "+str(self.elapsed_time))
+        for Device in Devices:
+            if(Devices[Device].DeviceID=='Amps' or Devices[Device].DeviceID=='Energy' or Devices[Device].DeviceID=='Temp' or Devices[Device].DeviceID=='Pilot'  ):  
+                Devices[Device].Update(nValue=Devices[Device].nValue,sValue=Devices[Device].sValue,TimedOut=1) 
 
 global _plugin
 _plugin = BasePlugin()
@@ -377,6 +416,6 @@ def UpdateDevice(Unit, nValue, sValue):
     # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
     if (Unit in Devices):
         if (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue):
-            Devices[Unit].Update(nValue=nValue, sValue=str(sValue))
+            Devices[Unit].Update(nValue=nValue, sValue=str(sValue),TimedOut=0)
             Domoticz.Log("Update "+str(nValue)+":'"+str(sValue)+"' ("+Devices[Unit].Name+")")
     return
