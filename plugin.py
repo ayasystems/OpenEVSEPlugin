@@ -6,7 +6,7 @@
 # 25/05/2020
 # Se añade Switch EcoMode
 """
-<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.2" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
+<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.3" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
         <h2>OpenEVSE MQTT Plugin</h2><br/>
         Los datos de consumo son aproximados ya que OpenEVSE no tiene sensor de voltaje. Se toma como referencia 235v
@@ -300,10 +300,10 @@ class BasePlugin:
           except Exception as e:
            Domoticz.Debug(str(e))
         if(Devices[Unit].DeviceID=="EcoMode"):
-           Domoticz.Error(Devices[Unit].sValue)
+           #Domoticz.Error(Devices[Unit].sValue)
            rapiTopic = self.base_topic + "/divertmode/set"#FE ENABLE #FD DISABLE
            divertmode = "2"
-           if(str(Devices[Unit].sValue)=="1"):
+           if(str(Devices[Unit].sValue)=="On"):
             divertmode = "1"
            if self.mqttClient is not None:
             try:
