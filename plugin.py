@@ -3,10 +3,12 @@
 # Author: EA4GKQ Ángel
 # https://github.com/OpenEVSE/ESP8266_WiFi_v2.x/blob/master/Developers_Guides/Developers%20Guide_MQTT.pdf
 # 
+# 26/05/2020
+# Se captura conexión / desconexión de mqtt dando error por consola
 # 25/05/2020
 # Se añade Switch EcoMode
 """
-<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.3" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
+<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.4" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
         <h2>OpenEVSE MQTT Plugin</h2><br/>
         Los datos de consumo son aproximados ya que OpenEVSE no tiene sensor de voltaje. Se toma como referencia 235v
@@ -113,166 +115,171 @@ class BasePlugin:
          Domoticz.Debug("MQTT message is not a valid string!") #if message is not a real string, drop it
          return False
         Domoticz.Debug("MQTT message: " + topic + " " + str(message))
-        mqttpath = topic.split('/')
-        if (mqttpath[0] == self.base_topic):
-          if (mqttpath[1] == "temp1"):
-            unitname="Temp"
-            subval="temp1"
-          if (mqttpath[1] == "pilot"):
-            unitname="Pilot"
-            subval="pilot"
-          if (mqttpath[1] == "state"):
-            unitname="Status"
-            subval="state"
-          if (mqttpath[1] == "amp"):
-            unitname="Amps"
-            subval="amp"
-            amperios = float(str(message).strip()) 			
-          if (mqttpath[1] == "wh"):
-            unitname="Energy"
-            subval="wh"
-          if (mqttpath[1] == "divertmode"):
-            unitname="EcoMode"
-            subval="divertmode"
+        if(str(message)=="connected"):
+            Domoticz.Error("mqtt connected")
+        elif(str(message)=="disconnected"):         
+            Domoticz.Error("mqtt disconnected")
+        else:
+            mqttpath = topic.split('/')
+            if (mqttpath[0] == self.base_topic):
+              if (mqttpath[1] == "temp1"):
+                unitname="Temp"
+                subval="temp1"
+              if (mqttpath[1] == "pilot"):
+                unitname="Pilot"
+                subval="pilot"
+              if (mqttpath[1] == "state"):
+                unitname="Status"
+                subval="state"
+              if (mqttpath[1] == "amp"):
+                unitname="Amps"
+                subval="amp"
+                amperios = float(str(message).strip()) 			
+              if (mqttpath[1] == "wh"):
+                unitname="Energy"
+                subval="wh"
+              if (mqttpath[1] == "divertmode"):
+                unitname="EcoMode"
+                subval="divertmode"
 
-          iUnit = -1
-          for Device in Devices:
-           try:
-            if (Devices[Device].DeviceID.strip() == unitname):
-             iUnit = Device
-             break
-           except:
-            pass
-          if iUnit<0: # if device does not exists in Domoticz, than create it
-            try:
-             iUnit = 0
-             for x in range(1,256):
-              if x not in Devices:
-               iUnit=x
-               break
-             if iUnit==0:
-              iUnit=len(Devices)+1
-             if subval=="temp1":
-              Domoticz.Debug("Creamos temp1.")#Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Switch",Used=1,DeviceID=unitname).Create()
-              Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Temperature",Used=1,DeviceID=unitname).Create()
-             elif subval=="amp":
-              Domoticz.Debug("Creamos amp.")#Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Switch",Used=1,DeviceID=unitname).Create()
-              Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()
-             elif subval=="pilot":
-              Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()              
-              Domoticz.Debug("MQTT connected pilot.")#Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=8,Used=1,DeviceID=unitname).Create()
-             elif subval=="state":
-              Options =   {   "LevelActions"  :"||||||" , 
-                              "LevelNames"    :"Disable|Disconnected|Connected|Charging|Error|Timer|WatingEv" ,
-                              "LevelOffHidden":"false",
-                              "SelectorStyle" :"1"
-              }			  
-              Domoticz.Device(Name=unitname,  Unit=iUnit, TypeName="Selector Switch", Switchtype=18, Image=12, Options=Options, Used=1,DeviceID=unitname).Create()
-              iUnit=iUnit+1
-              Domoticz.Device(Name="Toggle", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Toggle").Create()
-              iUnit=iUnit+1
-              Domoticz.Device(Name="Start", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Start").Create()
-              iUnit=iUnit+1
-              Domoticz.Device(Name="Stop", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Stop").Create()	
-              iUnit=iUnit+1
-              Domoticz.Device(Name="EcoMode", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="EcoMode").Create()              
-             elif subval=="wh":
-              Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=29,Switchtype=0,Used=1,DeviceID=unitname).Create()
-              Domoticz.Debug("MQTT connected wh.")
-            except Exception as e:
-             Domoticz.Debug(str(e))
-             return False
+              iUnit = -1
+              for Device in Devices:
+               try:
+                if (Devices[Device].DeviceID.strip() == unitname):
+                 iUnit = Device
+                 break
+               except:
+                pass
+              if iUnit<0: # if device does not exists in Domoticz, than create it
+                try:
+                 iUnit = 0
+                 for x in range(1,256):
+                  if x not in Devices:
+                   iUnit=x
+                   break
+                 if iUnit==0:
+                  iUnit=len(Devices)+1
+                 if subval=="temp1":
+                  Domoticz.Debug("Creamos temp1.")#Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Switch",Used=1,DeviceID=unitname).Create()
+                  Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Temperature",Used=1,DeviceID=unitname).Create()
+                 elif subval=="amp":
+                  Domoticz.Debug("Creamos amp.")#Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Switch",Used=1,DeviceID=unitname).Create()
+                  Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()
+                 elif subval=="pilot":
+                  Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()              
+                  Domoticz.Debug("MQTT connected pilot.")#Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=8,Used=1,DeviceID=unitname).Create()
+                 elif subval=="state":
+                  Options =   {   "LevelActions"  :"||||||" , 
+                                  "LevelNames"    :"Disable|Disconnected|Connected|Charging|Error|Timer|WatingEv" ,
+                                  "LevelOffHidden":"false",
+                                  "SelectorStyle" :"1"
+                  }			  
+                  Domoticz.Device(Name=unitname,  Unit=iUnit, TypeName="Selector Switch", Switchtype=18, Image=12, Options=Options, Used=1,DeviceID=unitname).Create()
+                  iUnit=iUnit+1
+                  Domoticz.Device(Name="Toggle", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Toggle").Create()
+                  iUnit=iUnit+1
+                  Domoticz.Device(Name="Start", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Start").Create()
+                  iUnit=iUnit+1
+                  Domoticz.Device(Name="Stop", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Stop").Create()	
+                  iUnit=iUnit+1
+                  Domoticz.Device(Name="EcoMode", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="EcoMode").Create()              
+                 elif subval=="wh":
+                  Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=29,Switchtype=0,Used=1,DeviceID=unitname).Create()
+                  Domoticz.Debug("MQTT connected wh.")
+                except Exception as e:
+                 Domoticz.Debug(str(e))
+                 return False
 
 
 
-          if subval=="temp1":
-           self.read_time = time.time()
-           try:
-            mval = float(str(message).strip())/10
-           except:
-            mval = str(message).strip()
-           try:
-            Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
-           except Exception as e:
-            Domoticz.Debug(str(e))
-            return False
-          elif subval=="pilot":
-           self.read_time = time.time()
-           try:
-            mval = float(str(message).strip())
-           except:
-            mval = str(message).strip()
-           try:
-            Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
-           except Exception as e:
-            Domoticz.Debug(str(e))
-            return False
-           pilot = float(str(message).strip())
-           Domoticz.Debug("pilot: "+str(pilot))  
-           return False		
-          elif subval=="amp":
-           self.read_time = time.time()
-           try:
-            mval = float(str(message).strip())/1000
-           except:
-            mval = str(message).strip()
-           try:
-            Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
-           except Exception as e:
-            Domoticz.Debug(str(e))
-            return False
-           amperios = float(str(message).strip())/1000
-           Domoticz.Debug("Amp: "+str(amperios))  
-           return False		   
-          elif subval=="state":
-           self.read_time = time.time()
-           try:
-            mval = str(message).strip()
-           except:
-            mval = str(message).strip()
-           if (mval=="254"):
-             mval="50"
-           elif (mval=="1"):
-             mval="10"
-           elif (mval=="2"):
-             mval="20"
-           elif (mval=="3"):
-             mval="30"
-           elif (mval=="4"):
-             mval="40"
-           elif (mval=="255"):
-             mval="0"
-           try:
-            #Devices[iUnit].Update(1,str(mval))
-            UpdateDevice(iUnit, 1, str(mval))
-           except Exception as e:
-            Domoticz.Debug(str(e))
-            return False
-          elif subval=="wh":
-              self.read_time = time.time()
-              Domoticz.Debug("Proceso wh")
-              voltaje = 235
-              watts = amperios * voltaje
-              Domoticz.Debug("amperios: "+str(amperios))
-              Domoticz.Debug("voltaje: "+str(voltaje))
-              try:
-               mval = float(str(message).strip())
-              except:
+              if subval=="temp1":
+               self.read_time = time.time()
+               try:
+                mval = float(str(message).strip())/10
+               except:
+                mval = str(message).strip()
+               try:
+                Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
+               except Exception as e:
+                Domoticz.Debug(str(e))
+                return False
+              elif subval=="pilot":
+               self.read_time = time.time()
+               try:
+                mval = float(str(message).strip())
+               except:
+                mval = str(message).strip()
+               try:
+                Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
+               except Exception as e:
+                Domoticz.Debug(str(e))
+                return False
+               pilot = float(str(message).strip())
+               Domoticz.Debug("pilot: "+str(pilot))  
+               return False		
+              elif subval=="amp":
+               self.read_time = time.time()
+               try:
+                mval = float(str(message).strip())/1000
+               except:
+                mval = str(message).strip()
+               try:
+                Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
+               except Exception as e:
+                Domoticz.Debug(str(e))
+                return False
+               amperios = float(str(message).strip())/1000
+               Domoticz.Debug("Amp: "+str(amperios))  
+               return False		   
+              elif subval=="state":
+               self.read_time = time.time()
+               try:
+                mval = str(message).strip()
+               except:
+                mval = str(message).strip()
+               if (mval=="254"):
+                 mval="50"
+               elif (mval=="1"):
+                 mval="10"
+               elif (mval=="2"):
+                 mval="20"
+               elif (mval=="3"):
+                 mval="30"
+               elif (mval=="4"):
+                 mval="40"
+               elif (mval=="255"):
+                 mval="0"
+               try:
+                #Devices[iUnit].Update(1,str(mval))
+                UpdateDevice(iUnit, 1, str(mval))
+               except Exception as e:
+                Domoticz.Debug(str(e))
+                return False
+              elif subval=="wh":
+                  self.read_time = time.time()
+                  Domoticz.Debug("Proceso wh")
+                  voltaje = 235
+                  watts = amperios * voltaje
+                  Domoticz.Debug("amperios: "+str(amperios))
+                  Domoticz.Debug("voltaje: "+str(voltaje))
+                  try:
+                   mval = float(str(message).strip())
+                  except:
+                   mval = str(message).strip()
+                  try:
+                   Devices[iUnit].Update(nValue=0,sValue=str(watts)+";"+str(mval),TimedOut=0)
+                   Domoticz.Debug("Update["+str(iUnit)+"]: "+str(watts)+";"+str(mval))
+                  except Exception as e:
+                   Domoticz.Debug(str(e))
+                   return False			  
+                  Domoticz.Debug("MQTT connected wh/kwh "+str(watts)+" / "+str(mval))#Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=29,Used=1,DeviceID=unitname).Create()
+              elif subval=="divertmode": 
                mval = str(message).strip()
-              try:
-               Devices[iUnit].Update(nValue=0,sValue=str(watts)+";"+str(mval),TimedOut=0)
-               Domoticz.Debug("Update["+str(iUnit)+"]: "+str(watts)+";"+str(mval))
-              except Exception as e:
-               Domoticz.Debug(str(e))
-               return False			  
-              Domoticz.Debug("MQTT connected wh/kwh "+str(watts)+" / "+str(mval))#Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=29,Used=1,DeviceID=unitname).Create()
-          elif subval=="divertmode": 
-           mval = str(message).strip()
-           Domoticz.Debug("divertmode: "+str(mval))
-           if(mval=="2"):
-            UpdateDevice(iUnit, 1, "On")
-           elif(mval=="1"):
-            UpdateDevice(iUnit, 0, "Off")
+               Domoticz.Debug("divertmode: "+str(mval))
+               if(mval=="2"):
+                UpdateDevice(iUnit, 1, "On")
+               elif(mval=="1"):
+                UpdateDevice(iUnit, 0, "Off")
            
     # executed each time we click on device thru domoticz GUI
     #def onCommand(Unit, Command, Level, Hue):
