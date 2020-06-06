@@ -3,12 +3,14 @@
 # Author: EA4GKQ Ángel
 # https://github.com/OpenEVSE/ESP8266_WiFi_v2.x/blob/master/Developers_Guides/Developers%20Guide_MQTT.pdf
 # 
+# 06/07/2020
+# Se mejora reconexión a MQTT cuando esta se corta
 # 26/05/2020
 # Se captura conexión / desconexión de mqtt dando error por consola
 # 25/05/2020
 # Se añade Switch EcoMode
 """
-<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.4" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
+<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.5" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
         <h2>OpenEVSE MQTT Plugin</h2><br/>
         Los datos de consumo son aproximados ya que OpenEVSE no tiene sensor de voltaje. Se toma como referencia 235v
@@ -287,21 +289,21 @@ class BasePlugin:
         Domoticz.Debug("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level)+", DeviceID: "+Devices[Unit].DeviceID )
         if(Devices[Unit].DeviceID=="Toggle"):
          rapiTopic = self.base_topic + "/rapi/in/$F1"#FE ENABLE #FD DISABLE
-         if self.mqttClient is not None:
+         if (self.mqttClient.isConnected):
           try:
            self.mqttClient.publish(rapiTopic, "")
           except Exception as e:
            Domoticz.Debug(str(e))
         if(Devices[Unit].DeviceID=="Start"):
          rapiTopic = self.base_topic + "/rapi/in/$FE"#FE ENABLE #FD DISABLE
-         if self.mqttClient is not None:
+         if (self.mqttClient.isConnected):
           try:
            self.mqttClient.publish(rapiTopic, "")
           except Exception as e:
            Domoticz.Debug(str(e))
         if(Devices[Unit].DeviceID=="Stop"):
          rapiTopic = self.base_topic + "/rapi/in/$FD"#FE ENABLE #FD DISABLE
-         if self.mqttClient is not None:
+         if (self.mqttClient.isConnected):
           try:
            self.mqttClient.publish(rapiTopic, "")
           except Exception as e:
@@ -312,7 +314,7 @@ class BasePlugin:
            divertmode = "2"
            if(str(Devices[Unit].sValue)=="On"):
             divertmode = "1"
-           if self.mqttClient is not None:
+           if (self.mqttClient.isConnected):
             try:
              self.mqttClient.publish(rapiTopic, divertmode)
             except Exception as e:
@@ -332,6 +334,7 @@ class BasePlugin:
 
     def onDisconnect(self, Connection):
         Domoticz.Log("onDisconnect called")
+        self.mqttClient.isConnected = False
 
     def onHeartbeat(self):
       Domoticz.Debug("Heartbeating..."+str(self.mqttClient.isConnected))
@@ -346,7 +349,7 @@ class BasePlugin:
        except Exception as e:
         Domoticz.Error(str(e))
       self.elapsed_time = time.time() - self.read_time
-      if(self.elapsed_time>60):
+      if(self.elapsed_time>80 and self.elapsed_time<90):
         Domoticz.Error("Last data: "+str(self.elapsed_time))
         for Device in Devices:
             if(Devices[Device].DeviceID=='Amps' or Devices[Device].DeviceID=='Energy' or Devices[Device].DeviceID=='Temp' or Devices[Device].DeviceID=='Pilot'  ):  
