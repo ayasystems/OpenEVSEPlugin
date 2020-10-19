@@ -3,6 +3,11 @@
 # Author: EA4GKQ Ángel
 # https://github.com/OpenEVSE/ESP8266_WiFi_v2.x/blob/master/Developers_Guides/Developers%20Guide_MQTT.pdf
 # 
+#
+# 19/10/2020
+# Se crea un nuevo device, un termostato, con el que podremos cambiar desde domoticz el valor de carga máxima de OpenEVSE "pilot"
+# Tras actualizar para que aparezca el nuevo device es necesario que borremos el device pilot, paremos el plugin y lo arranquemos de nuevo. Se debe tener activado
+# permitir nuevo hardware
 # 06/07/2020
 # Se mejora reconexión a MQTT cuando esta se corta
 # 26/05/2020
@@ -10,7 +15,7 @@
 # 25/05/2020
 # Se añade Switch EcoMode
 """
-<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.5" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
+<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.6" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
         <h2>OpenEVSE MQTT Plugin</h2><br/>
         Los datos de consumo son aproximados ya que OpenEVSE no tiene sensor de voltaje. Se toma como referencia 235v
@@ -168,7 +173,8 @@ class BasePlugin:
                   Domoticz.Debug("Creamos amp.")#Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Switch",Used=1,DeviceID=unitname).Create()
                   Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()
                  elif subval=="pilot":
-                  Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()              
+                  Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()   
+                  Domoticz.Device(Name="PilotSet", Unit=20,Type=242,Subtype=1,Used=1,DeviceID="PilotSet").Create() 				  
                   Domoticz.Debug("MQTT connected pilot.")#Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=8,Used=1,DeviceID=unitname).Create()
                  elif subval=="state":
                   Options =   {   "LevelActions"  :"||||||" , 
@@ -216,6 +222,18 @@ class BasePlugin:
                except Exception as e:
                 Domoticz.Debug(str(e))
                 return False
+
+
+               try:
+                mval = float(str(message).strip())
+               except:
+                mval = str(message).strip()
+               try:
+                Devices[20].Update(nValue=0,sValue=str(mval),TimedOut=0)
+               except Exception as e:
+                Domoticz.Debug(str(e))
+                return False
+
                pilot = float(str(message).strip())
                Domoticz.Debug("pilot: "+str(pilot))  
                return False		
@@ -318,7 +336,17 @@ class BasePlugin:
             try:
              self.mqttClient.publish(rapiTopic, divertmode)
             except Exception as e:
-             Domoticz.Debug(str(e))           
+             Domoticz.Debug(str(e))     
+        if(Devices[Unit].DeviceID=="PilotSet"):
+           #Domoticz.Error(Devices[Unit].sValue)
+           value = int(float(Level))
+           rapiTopic = self.base_topic + "/rapi/in/$SC"
+           Domoticz.Debug(rapiTopic)  
+           if (self.mqttClient.isConnected):
+            try:
+             self.mqttClient.publish(rapiTopic, str(value))
+            except Exception as e:
+             Domoticz.Debug(str(e))  			 
     def onConnect(self, Connection, Status, Description):
         if (Status == 0):
             Domoticz.Debug("MQTT connected successfully.")
