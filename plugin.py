@@ -3,17 +3,14 @@
 # Author: EA4GKQ Ángel
 # https://github.com/OpenEVSE/ESP8266_WiFi_v2.x/blob/master/Developers_Guides/Developers%20Guide_MQTT.pdf
 # 
-#
-# 19/10/2020
-# Se crea un nuevo device, un termostato, con el que podremos cambiar desde domoticz el valor de carga máxima de OpenEVSE "pilot"
-# Tras actualizar para que aparezca el nuevo device es necesario que borremos el device pilot, paremos el plugin y lo arranquemos de nuevo. Se debe tener activado
-# permitir nuevo hardware
 # 06/07/2020
 # Se mejora reconexión a MQTT cuando esta se corta
 # 26/05/2020
 # Se captura conexión / desconexión de mqtt dando error por consola
 # 25/05/2020
 # Se añade Switch EcoMode
+# 23/03/2021
+# Se añade Switch Plugged para saber si el coche está o no enchufado al cargador
 """
 <plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.6" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
@@ -76,6 +73,8 @@ class BasePlugin:
     mqttClient = None
     errmsg = ""
     subval = ""
+    response = ""
+    plugged = "0"
     amperios = 0	
     read_time = time.time()
     elapsed_time = 0
@@ -129,6 +128,7 @@ class BasePlugin:
         else:
             mqttpath = topic.split('/')
             if (mqttpath[0] == self.base_topic):
+              Domoticz.Debug("mqttpath[1]: "+mqttpath[1])
               if (mqttpath[1] == "temp1"):
                 unitname="Temp"
                 subval="temp1"
@@ -148,7 +148,22 @@ class BasePlugin:
               if (mqttpath[1] == "divertmode"):
                 unitname="EcoMode"
                 subval="divertmode"
-
+              if (mqttpath[1] == "rapi" and mqttpath[2] == "out"):
+                #Domoticz.Debug("str(message): "+str(message))
+                #$OK 1 :77^2B
+                response = str(message)
+                #Domoticz.Debug("response[6:8] -"+response[6:9]+"-")
+                if(response[6:9]==":77"):
+                  #Domoticz.Debug("Response: "+response[4:5])
+                  plugged = response[4:5]
+                  if(response[4:5]=="1"):
+                    plugged = "1"                
+                    unitname="Plugged"
+                    subval="Plugged"
+                  if(response[4:5]=="0"):
+                    plugged = "0"             
+                    unitname="Plugged"
+                    subval="Plugged"                   
               iUnit = -1
               for Device in Devices:
                try:
@@ -190,7 +205,9 @@ class BasePlugin:
                   iUnit=iUnit+1
                   Domoticz.Device(Name="Stop", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Stop").Create()	
                   iUnit=iUnit+1
-                  Domoticz.Device(Name="EcoMode", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="EcoMode").Create()              
+                  Domoticz.Device(Name="EcoMode", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="EcoMode").Create()    
+                 elif subval=="Plugged":   
+                  Domoticz.Device(Name="Plugged", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="Plugged").Create()                   
                  elif subval=="wh":
                   Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=29,Switchtype=0,Used=1,DeviceID=unitname).Create()
                   Domoticz.Debug("MQTT connected wh.")
@@ -300,7 +317,13 @@ class BasePlugin:
                 UpdateDevice(iUnit, 1, "On")
                elif(mval=="1"):
                 UpdateDevice(iUnit, 0, "Off")
-           
+              elif subval=="Plugged": 
+               Domoticz.Debug("Plugged: "+str(plugged))
+               if(plugged=="1"):
+                UpdateDevice(iUnit, 1, "On")
+               elif(plugged=="0"):
+                UpdateDevice(iUnit, 0, "Off")
+          
     # executed each time we click on device thru domoticz GUI
     #def onCommand(Unit, Command, Level, Hue):
     def onCommand(self, Unit, Command, Level, Color):  #
@@ -376,6 +399,14 @@ class BasePlugin:
             self.mqttClient.ping()
        except Exception as e:
         Domoticz.Error(str(e))
+        
+       rapiTopic = self.base_topic + "/rapi/in/$G0"
+       Domoticz.Debug(" Comando mqtt: "+rapiTopic)  
+       if (self.mqttClient.isConnected):
+        try:
+         self.mqttClient.publish(rapiTopic, ":77")
+        except Exception as e:
+         Domoticz.Debug(str(e))          
       self.elapsed_time = time.time() - self.read_time
       if(self.elapsed_time>80 and self.elapsed_time<90):
         Domoticz.Error("Last data: "+str(self.elapsed_time))
