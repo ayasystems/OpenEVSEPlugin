@@ -11,11 +11,14 @@
 # Se añade Switch EcoMode
 # 23/03/2021
 # Se añade Switch Plugged para saber si el coche está o no enchufado al cargador
+# 29/06/2021
+# Se añade Switch Manual Override
+# Adaptado a funcionar en V4 ESP32
 """
 <plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.6" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
         <h2>OpenEVSE MQTT Plugin</h2><br/>
-        Los datos de consumo son aproximados ya que OpenEVSE no tiene sensor de voltaje. Se toma como referencia 235v
+        
         <h3>by @ea4gkq</h3>
         Visita https://domotuto.com/integracion-domoticz-openevse-mqtt/
     </description>
@@ -75,6 +78,7 @@ class BasePlugin:
     subval = ""
     response = ""
     plugged = "0"
+    ManualOverride = "0"
     amperios = 0	
     read_time = time.time()
     elapsed_time = 0
@@ -129,9 +133,9 @@ class BasePlugin:
             mqttpath = topic.split('/')
             if (mqttpath[0] == self.base_topic):
               Domoticz.Debug("mqttpath[1]: "+mqttpath[1])
-              if (mqttpath[1] == "temp1"):
+              if (mqttpath[1] == "temp"):
                 unitname="Temp"
-                subval="temp1"
+                subval="temp"
               if (mqttpath[1] == "pilot"):
                 unitname="Pilot"
                 subval="pilot"
@@ -148,22 +152,26 @@ class BasePlugin:
               if (mqttpath[1] == "divertmode"):
                 unitname="EcoMode"
                 subval="divertmode"
-              if (mqttpath[1] == "rapi" and mqttpath[2] == "out"):
-                #Domoticz.Debug("str(message): "+str(message))
-                #$OK 1 :77^2B
+              if (mqttpath[1] == "vehicle"): 
                 response = str(message)
-                #Domoticz.Debug("response[6:8] -"+response[6:9]+"-")
-                if(response[6:9]==":77"):
-                  #Domoticz.Debug("Response: "+response[4:5])
-                  plugged = response[4:5]
-                  if(response[4:5]=="1"):
-                    plugged = "1"                
-                    unitname="Plugged"
-                    subval="Plugged"
-                  if(response[4:5]=="0"):
-                    plugged = "0"             
-                    unitname="Plugged"
-                    subval="Plugged"                   
+                if(response=="1"):
+                  plugged = "1"                
+                  unitname="Plugged"
+                  subval="Plugged"
+                if(response=="0"):
+                  plugged = "0"             
+                  unitname="Plugged"
+                  subval="Plugged"     
+              if (mqttpath[1] == "manual_override"): 
+                response = str(message)
+                if(response=="1"):
+                  ManualOverride = "1"                
+                  unitname="ManualOverride"
+                  subval="ManualOverride"
+                if(response=="0"):
+                  ManualOverride = "0"             
+                  unitname="ManualOverride"
+                  subval="ManualOverride"                    
               iUnit = -1
               for Device in Devices:
                try:
@@ -181,8 +189,8 @@ class BasePlugin:
                    break
                  if iUnit==0:
                   iUnit=len(Devices)+1
-                 if subval=="temp1":
-                  Domoticz.Debug("Creamos temp1.")#Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Switch",Used=1,DeviceID=unitname).Create()
+                 if subval=="temp":
+                  Domoticz.Debug("Creamos temp.")#Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Switch",Used=1,DeviceID=unitname).Create()
                   Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Temperature",Used=1,DeviceID=unitname).Create()
                  elif subval=="amp":
                   Domoticz.Debug("Creamos amp.")#Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Switch",Used=1,DeviceID=unitname).Create()
@@ -208,6 +216,8 @@ class BasePlugin:
                   Domoticz.Device(Name="EcoMode", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="EcoMode").Create()    
                  elif subval=="Plugged":   
                   Domoticz.Device(Name="Plugged", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="Plugged").Create()                   
+                 elif subval=="ManualOverride":   
+                  Domoticz.Device(Name="ManualOverride", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="ManualOverride").Create()                   
                  elif subval=="wh":
                   Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=29,Switchtype=0,Used=1,DeviceID=unitname).Create()
                   Domoticz.Debug("MQTT connected wh.")
@@ -217,7 +227,7 @@ class BasePlugin:
 
 
 
-              if subval=="temp1":
+              if subval=="temp":
                self.read_time = time.time()
                try:
                 mval = float(str(message).strip())/10
@@ -323,6 +333,12 @@ class BasePlugin:
                 UpdateDevice(iUnit, 1, "On")
                elif(plugged=="0"):
                 UpdateDevice(iUnit, 0, "Off")
+              elif subval=="ManualOverride": 
+               Domoticz.Debug("ManualOverride: "+str(ManualOverride))
+               if(ManualOverride=="1"):
+                UpdateDevice(iUnit, 1, "On")
+               elif(ManualOverride=="0"):
+                UpdateDevice(iUnit, 0, "Off")   
           
     # executed each time we click on device thru domoticz GUI
     #def onCommand(Unit, Command, Level, Hue):
@@ -349,6 +365,18 @@ class BasePlugin:
            self.mqttClient.publish(rapiTopic, "")
           except Exception as e:
            Domoticz.Debug(str(e))
+
+        if(Devices[Unit].DeviceID=="ManualOverride"):
+           #Domoticz.Error(Devices[Unit].sValue)
+           rapiTopic = self.base_topic + "/manual_override/set"#FE ENABLE #FD DISABLE
+           ManualOverride = "0"
+           if(str(Devices[Unit].sValue)=="On"):
+            ManualOverride = "1"
+           if (self.mqttClient.isConnected):
+            try:
+             self.mqttClient.publish(rapiTopic, ManualOverride)
+            except Exception as e:
+             Domoticz.Debug(str(e)) 
         if(Devices[Unit].DeviceID=="EcoMode"):
            #Domoticz.Error(Devices[Unit].sValue)
            rapiTopic = self.base_topic + "/divertmode/set"#FE ENABLE #FD DISABLE
@@ -400,13 +428,13 @@ class BasePlugin:
        except Exception as e:
         Domoticz.Error(str(e))
         
-       rapiTopic = self.base_topic + "/rapi/in/$G0"
-       Domoticz.Debug(" Comando mqtt: "+rapiTopic)  
-       if (self.mqttClient.isConnected):
-        try:
-         self.mqttClient.publish(rapiTopic, ":77")
-        except Exception as e:
-         Domoticz.Debug(str(e))          
+       #rapiTopic = self.base_topic + "/rapi/in/$G0"
+       #Domoticz.Debug(" Comando mqtt: "+rapiTopic)  
+       #if (self.mqttClient.isConnected):
+       # try:
+       #  self.mqttClient.publish(rapiTopic, ":77")
+       # except Exception as e:
+       #  Domoticz.Debug(str(e))          
       self.elapsed_time = time.time() - self.read_time
       if(self.elapsed_time>80 and self.elapsed_time<90):
         Domoticz.Error("Last data: "+str(self.elapsed_time))
