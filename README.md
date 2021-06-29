@@ -1,6 +1,11 @@
 # OpenEVSEPlugin
 OpenEVSE mqtt domoticz plugin
 
+Últimos cambios
+* Adaptado a nueva V4 ESP322
+* Añadido dummy Manual Override
+* Añadido dummy para ver si el coche está enchufado al cargador 
+
 ![OpenEVSE_Plugin](https://github.com/ayasystems/OpenEVSEPlugin/raw/master/openevse_plugin.jpg)
 
 
