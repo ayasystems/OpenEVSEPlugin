@@ -14,6 +14,9 @@
 # 29/06/2021
 # Se añade Switch Manual Override
 # Adaptado a funcionar en V4 ESP32
+# 27/10/2021
+# Corregido error al enviar a domoticz el consumo actual wh con demasiados decimales. Se quitan los decimales
+# 
 """
 <plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.6" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
@@ -48,6 +51,7 @@
 errmsg = ""
 subval = ""
 amperios = 0
+voltaje = 235
 try:
  import Domoticz
 except Exception as e:
@@ -115,6 +119,7 @@ class BasePlugin:
         Domoticz.Debug("onMQTTSubscribed")
     def onMQTTPublish(self, topic, message): # process incoming MQTT statuses
         global amperios
+        global voltaje
         subval = ""
         if "/announce" in topic: # announce did not contain any information for us
          return False
@@ -161,7 +166,9 @@ class BasePlugin:
                 if(response=="0"):
                   plugged = "0"             
                   unitname="Plugged"
-                  subval="Plugged"     
+                  subval="Plugged"  
+              if (mqttpath[1] == "voltage"):
+                  voltaje = float(str(message).strip())             
               if (mqttpath[1] == "manual_override"): 
                 response = str(message)
                 if(response=="1"):
@@ -305,10 +312,10 @@ class BasePlugin:
               elif subval=="wh":
                   self.read_time = time.time()
                   Domoticz.Debug("Proceso wh")
-                  voltaje = 235
                   watts = amperios * voltaje
+                  watts = round(watts)
                   Domoticz.Debug("amperios: "+str(amperios))
-                  Domoticz.Debug("voltaje: "+str(voltaje))
+                  Domoticz.Debug("voltaje_: "+str(voltaje))
                   try:
                    mval = float(str(message).strip())
                   except:
