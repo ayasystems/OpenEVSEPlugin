@@ -16,9 +16,12 @@
 # Adaptado a funcionar en V4 ESP32
 # 27/10/2021
 # Corregido error al enviar a domoticz el consumo actual wh con demasiados decimales. Se quitan los decimales
+# 23/04/2023
+# Se cambia el topic de energía wh por watthour, ya que en versiones nuevas ya no viene wh
 # 
+
 """
-<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.6" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
+<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.7" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
         <h2>OpenEVSE MQTT Plugin</h2><br/>
         
@@ -151,7 +154,7 @@ class BasePlugin:
                 unitname="Amps"
                 subval="amp"
                 amperios = float(str(message).strip()) 			
-              if (mqttpath[1] == "wh"):
+              if (mqttpath[1] == "watthour"):
                 unitname="Energy"
                 subval="wh"
               if (mqttpath[1] == "divertmode"):
