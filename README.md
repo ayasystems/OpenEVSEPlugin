@@ -8,6 +8,8 @@ OpenEVSE mqtt domoticz plugin
 
 ![OpenEVSE_Plugin](https://github.com/ayasystems/OpenEVSEPlugin/raw/master/openevse_plugin.jpg)
 
+<img width="1209" height="523" alt="image" src="https://github.com/user-attachments/assets/49cfa5d7-14fd-4756-b5e8-a2b97176849d" />
+
 
 [Instalar plugin OpenEvSe en domoticz paso a paso](https://domotuto.com/integracion-domoticz-openevse-mqtt/) 
 
