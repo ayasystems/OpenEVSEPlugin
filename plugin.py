@@ -3,6 +3,9 @@
 # Author: EA4GKQ Ángel
 # https://github.com/OpenEVSE/ESP8266_WiFi_v2.x/blob/master/Developers_Guides/Developers%20Guide_MQTT.pdf
 # 
+# 21/01/2026
+# Se añade Switch Shaper
+# Vuelve a funcionar el botón STOP, START y TOGGLE
 # 06/07/2020
 # Se mejora reconexión a MQTT cuando esta se corta
 # 26/05/2020
@@ -21,7 +24,7 @@
 # 
 
 """
-<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.7" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
+<plugin key="BasePlug" name="OpenEVSE mqtt plugin" author="EA4GKQ Ángel" version="1.0.8" wikilink="https://github.com/ayasystems/OpenEVSEPlugin" externallink="https://www.openevse.com/">
      <description>
         <h2>OpenEVSE MQTT Plugin</h2><br/>
         
@@ -37,13 +40,14 @@
 
         <param field="Mode6" label="Debug" width="150px">
             <options>
-                <option label="None" value="0"  default="true" />
-                <option label="Python Only" value="2"/>
-                <option label="Basic Debugging" value="62"/>
-                <option label="Basic+Messages" value="126"/>
-                <option label="Connections Only" value="16"/>
-                <option label="Connections+Queue" value="144"/>
-                <option label="All" value="-1"/>
+                <option label="Normal" value="Normal"  default="true"/>
+                <option label="Verbose" value="Verbose"/>
+                <option label="Debug - Python Only" value="2"/>
+                <option label="Debug - Basic" value="62"/>
+                <option label="Debug - Basic+Messages" value="126"/>
+                <option label="Debug - Connections Only" value="16"/>
+                <option label="Debug - Connections+Queue" value="144"/>
+                <option label="Debug - All" value="-1"/>
             </options>
         </param>
 
@@ -93,13 +97,24 @@ class BasePlugin:
         return
 
     def onStart(self):
+     # setup the appropriate logging level
+     try:
+        debuglevel = int(Parameters["Mode6"])
+     except ValueError:
+        debuglevel = 0
+        self.loglevel = Parameters["Mode6"]
+     if debuglevel != 0:
+        self.debug = True
+        Domoticz.Debugging(debuglevel)
+        DumpConfigToLog()
+        self.loglevel = "Verbose"
+     else:
+        self.debug = False
+        Domoticz.Debugging(0)        
      global errmsg
      if errmsg =="":
       try:
         Domoticz.Heartbeat(10)
-        if Parameters["Mode6"] != "0":
-            Domoticz.Debugging(int(Parameters["Mode6"]))
-            DumpConfigToLog()
         self.base_topic = Parameters["Mode1"].strip() # hardwired
         self.mqttserveraddress = Parameters["Address"].strip()
         self.mqttserverport = Parameters["Port"].strip()
@@ -160,6 +175,9 @@ class BasePlugin:
               if (mqttpath[1] == "divertmode"):
                 unitname="EcoMode"
                 subval="divertmode"
+              if (mqttpath[1] == "shaper"):
+                unitname="Shaper"
+                subval="shaper"                
               if (mqttpath[1] == "vehicle"): 
                 response = str(message)
                 if(response=="1"):
@@ -223,7 +241,9 @@ class BasePlugin:
                   iUnit=iUnit+1
                   Domoticz.Device(Name="Stop", Unit=iUnit,TypeName="Switch", Switchtype=9,Used=1,DeviceID="Stop").Create()	
                   iUnit=iUnit+1
-                  Domoticz.Device(Name="EcoMode", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="EcoMode").Create()    
+                  Domoticz.Device(Name="EcoMode", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="EcoMode").Create() 	
+                 elif subval=="shaper": 
+                  Domoticz.Device(Name="Shaper", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="Shaper").Create()    
                  elif subval=="Plugged":   
                   Domoticz.Device(Name="Plugged", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="Plugged").Create()                   
                  elif subval=="ManualOverride":   
@@ -255,21 +275,24 @@ class BasePlugin:
                except:
                 mval = str(message).strip()
                try:
-                Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
+                if(Devices[Unit].sValue != str(mval)):
+                    Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
+                else:
+                    Domoticz.Error(str(mval))
                except Exception as e:
                 Domoticz.Debug(str(e))
                 return False
 
 
-               try:
-                mval = float(str(message).strip())
-               except:
-                mval = str(message).strip()
-               try:
-                Devices[20].Update(nValue=0,sValue=str(mval),TimedOut=0)
-               except Exception as e:
-                Domoticz.Debug(str(e))
-                return False
+               #try:
+               # mval = float(str(message).strip())
+               #except:
+               # mval = str(message).strip()
+               #try:
+               # Devices[20].Update(nValue=0,sValue=str(mval),TimedOut=0)
+               #except Exception as e:
+               # Domoticz.Debug(str(e))
+               # return False
 
                pilot = float(str(message).strip())
                Domoticz.Debug("pilot: "+str(pilot))  
@@ -308,7 +331,7 @@ class BasePlugin:
                  mval="0"
                try:
                 #Devices[iUnit].Update(1,str(mval))
-                UpdateDevice(iUnit, 1, str(mval))
+                UpdateDevice(iUnit, 1, str(mval))#UpdateDevice(Unit, nValue, sValue)
                except Exception as e:
                 Domoticz.Debug(str(e))
                 return False
@@ -337,6 +360,12 @@ class BasePlugin:
                 UpdateDevice(iUnit, 1, "On")
                elif(mval=="1"):
                 UpdateDevice(iUnit, 0, "Off")
+              elif subval=="shaper": 
+               mval = str(message).strip()
+               if(mval=="1"):
+                UpdateDevice(iUnit, 1, "On")
+               elif(mval=="0"):
+                UpdateDevice(iUnit, 0, "Off")                
               elif subval=="Plugged": 
                Domoticz.Debug("Plugged: "+str(plugged))
                if(plugged=="1"):
@@ -355,24 +384,26 @@ class BasePlugin:
     def onCommand(self, Unit, Command, Level, Color):  #
         Domoticz.Debug("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level)+", DeviceID: "+Devices[Unit].DeviceID )
         if(Devices[Unit].DeviceID=="Toggle"):
-         rapiTopic = self.base_topic + "/rapi/in/$F1"#FE ENABLE #FD DISABLE
+         rapiTopic = self.base_topic + "/override/set"#FE ENABLE #FD DISABLE
          if (self.mqttClient.isConnected):
           try:
-           self.mqttClient.publish(rapiTopic, "")
+           self.mqttClient.publish(rapiTopic, "toggle")
           except Exception as e:
            Domoticz.Debug(str(e))
         if(Devices[Unit].DeviceID=="Start"):
-         rapiTopic = self.base_topic + "/rapi/in/$FE"#FE ENABLE #FD DISABLE
+         rapiTopic = self.base_topic + "/override/set"#FE ENABLE #FD DISABLE
+         startJson = "clear"
          if (self.mqttClient.isConnected):
           try:
-           self.mqttClient.publish(rapiTopic, "")
+           self.mqttClient.publish(rapiTopic, startJson)
           except Exception as e:
            Domoticz.Debug(str(e))
         if(Devices[Unit].DeviceID=="Stop"):
-         rapiTopic = self.base_topic + "/rapi/in/$FD"#FE ENABLE #FD DISABLE
+         rapiTopic = self.base_topic + "/override/set"#FE ENABLE #FD DISABLE
+         stopJson = '''{"state": "disabled"}'''
          if (self.mqttClient.isConnected):
           try:
-           self.mqttClient.publish(rapiTopic, "")
+           self.mqttClient.publish(rapiTopic, stopJson)
           except Exception as e:
            Domoticz.Debug(str(e))
 
@@ -397,17 +428,37 @@ class BasePlugin:
             try:
              self.mqttClient.publish(rapiTopic, divertmode)
             except Exception as e:
-             Domoticz.Debug(str(e))     
-        if(Devices[Unit].DeviceID=="PilotSet"):
+             Domoticz.Debug(str(e))
+        if(Devices[Unit].DeviceID=="Shaper"):
            #Domoticz.Error(Devices[Unit].sValue)
-           value = int(float(Level))
-           rapiTopic = self.base_topic + "/rapi/in/$SC"
-           Domoticz.Debug(rapiTopic)  
+           rapiTopic = self.base_topic + "/shaper/set" 
+           shaper = "1"
+           if(str(Devices[Unit].sValue)=="On"):   
+            shaper = "0"
            if (self.mqttClient.isConnected):
             try:
-             self.mqttClient.publish(rapiTopic, str(value))
+             self.mqttClient.publish(rapiTopic, shaper)
             except Exception as e:
-             Domoticz.Debug(str(e))  			 
+             Domoticz.Debug(str(e))             
+        if(Devices[Unit].DeviceID=="ManualOverride"):
+           #Domoticz.Error(Devices[Unit].sValue)
+           rapiTopic = self.base_topic + "/override/set" 
+           divertmode = "toggle"
+           if (self.mqttClient.isConnected):
+            try:
+             self.mqttClient.publish(rapiTopic, divertmode)
+            except Exception as e:
+             Domoticz.Debug(str(e))               
+        #if(Devices[Unit].DeviceID=="PilotSet"):
+        #   #Domoticz.Error(Devices[Unit].sValue)
+        #   value = int(float(Level))
+        #   rapiTopic = self.base_topic + "/rapi/in/$SC"
+        #   Domoticz.Debug(rapiTopic)  
+        #   if (self.mqttClient.isConnected):
+        #    try:
+        #     self.mqttClient.publish(rapiTopic, str(value))
+        #    except Exception as e:
+        #     Domoticz.Debug(str(e))  			 
     def onConnect(self, Connection, Status, Description):
         if (Status == 0):
             Domoticz.Debug("MQTT connected successfully.")
@@ -524,5 +575,18 @@ def UpdateDevice(Unit, nValue, sValue):
     if (Unit in Devices):
         if (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue):
             Devices[Unit].Update(nValue=nValue, sValue=str(sValue),TimedOut=0)
-            Domoticz.Log("Update "+str(nValue)+":'"+str(sValue)+"' ("+Devices[Unit].Name+")")
+            #Domoticz.Error("   ")
+            #Domoticz.Error(Devices[Unit].Name)
+            #Domoticz.Error("Current nValue:")
+            #Domoticz.Error(Devices[Unit].nValue)
+            #Domoticz.Error(" update nValue: ")
+            #Domoticz.Error(nValue)
+            #Domoticz.Error(" current sValue: ")
+            #Domoticz.Error(Devices[Unit].sValue )
+            #Domoticz.Error(" update sValue: ")
+            #Domoticz.Error(sValue)            
+            #Domoticz.Error("==================")
+        else:
+            Devices[Unit].Update(nValue=nValue, sValue=str(sValue),TimedOut=0,SuppressTriggers=True)    
+            #Domoticz.Error("Update "+Devices[Unit].Name+" silent mode")
     return
