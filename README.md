@@ -2,9 +2,8 @@
 OpenEVSE mqtt domoticz plugin
 
 Últimos cambios
-* Adaptado a nueva V4 ESP32
-* Añadido dummy Manual Override
-* Añadido dummy para ver si el coche está enchufado al cargador 
+* Añadida activación / desactivación Shaper
+* Vuelve a funcionar start / stop / toggle 
 
  
 
