@@ -43,6 +43,7 @@ sudo systemctl stop domoticz
 2. Ve al directorio del plugin y haz un git pull para que actualice la versión 
 ```
 cd domoticz/plugins/OpenEVSEPlugin
+git reset --hard
 git pull
 ```
 3. Start domoticz
