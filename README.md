@@ -4,13 +4,15 @@ OpenEVSE mqtt domoticz plugin
 Últimos cambios
 * Añadida activación / desactivación Shaper
 * Vuelve a funcionar start / stop / toggle 
-
- 
+* Añadidos dos nuevos sensores Uptime y WifiSignal
+* Corregido PilotSet (Solo visualizará el valor al que está operando) 
 
 <img width="1209" height="523" alt="image" src="https://github.com/user-attachments/assets/49cfa5d7-14fd-4756-b5e8-a2b97176849d" />
 
+<img width="1226" height="323" alt="image" src="https://github.com/user-attachments/assets/d4385eca-7574-413a-a34c-c92e3b8c0b19" />
 
 [Instalar plugin OpenEvSe en domoticz paso a paso](https://domotuto.com/integracion-domoticz-openevse-mqtt/) 
+
 
 
 OpenEvSe es un cargador para vehículos electricos que permite control via Wifi. Para más información sobre OpenEvSe ir a la web del fabricante [OpenEvSe web](https://www.openevse.com/) 
