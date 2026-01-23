@@ -3,6 +3,9 @@
 # Author: EA4GKQ Ángel
 # https://github.com/OpenEVSE/ESP8266_WiFi_v2.x/blob/master/Developers_Guides/Developers%20Guide_MQTT.pdf
 # 
+# 23/01/2026
+# Añadidos dos nuevos sensores Uptime y WifiSignal
+# Corregido PilotSet (Solo visualizará el valor al que está operando)
 # 21/01/2026
 # Se añade Switch Shaper
 # Vuelve a funcionar el botón STOP, START y TOGGLE
@@ -160,8 +163,14 @@ class BasePlugin:
                 unitname="Temp"
                 subval="temp"
               if (mqttpath[1] == "pilot"):
-                unitname="Pilot"
+                unitname="SetPoint"
                 subval="pilot"
+              if (mqttpath[1] == "uptime"):
+                unitname="Uptime"
+                subval="uptime"   
+              if (mqttpath[1] == "srssi"):
+                unitname="WifiSignal"
+                subval="srssi"                
               if (mqttpath[1] == "state"):
                 unitname="Status"
                 subval="state"
@@ -224,9 +233,12 @@ class BasePlugin:
                   Domoticz.Debug("Creamos amp.")#Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Switch",Used=1,DeviceID=unitname).Create()
                   Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()
                  elif subval=="pilot":
-                  Domoticz.Device(Name=unitname, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()   
-                  Domoticz.Device(Name="PilotSet", Unit=20,Type=242,Subtype=1,Used=1,DeviceID="PilotSet").Create() 				  
-                  Domoticz.Debug("MQTT connected pilot.")#Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=8,Used=1,DeviceID=unitname).Create()
+                  #Domoticz.Device(Name=unitnames, Unit=iUnit,TypeName="Current (Single)",Used=1,DeviceID=unitname).Create()
+                  Domoticz.Device(Name=unitname, Unit=iUnit,Type=243, Subtype=31, Options={"Custom": "1;Amps"},Used=1,DeviceID=unitname).Create()      
+                 elif subval=="uptime":
+                  Domoticz.Device(Name=unitname, Unit=iUnit,Type=243, Subtype=31, Options={"Custom": "1;s"},Used=1,DeviceID=unitname).Create()         
+                 elif subval=="srssi":
+                  Domoticz.Device(Name=unitname, Unit=iUnit,Type=243, Subtype=31, Options={"Custom": "1;srssi"},Used=1,DeviceID=unitname).Create()                  
                  elif subval=="state":
                   Options =   {   "LevelActions"  :"||||||" , 
                                   "LevelNames"    :"Disable|Disconnected|Connected|Charging|Error|Timer|WatingEv" ,
@@ -250,7 +262,6 @@ class BasePlugin:
                   Domoticz.Device(Name="ManualOverride", Unit=iUnit,TypeName="Switch", Switchtype=0,Used=1,DeviceID="ManualOverride").Create()                   
                  elif subval=="wh":
                   Domoticz.Device(Name=unitname, Unit=iUnit,Type=243,Subtype=29,Switchtype=0,Used=1,DeviceID=unitname).Create()
-                  Domoticz.Debug("MQTT connected wh.")
                 except Exception as e:
                  Domoticz.Debug(str(e))
                  return False
@@ -271,32 +282,45 @@ class BasePlugin:
               elif subval=="pilot":
                self.read_time = time.time()
                try:
-                mval = float(str(message).strip())
+                mval = float(str(message).strip())   
                except:
                 mval = str(message).strip()
                try:
-                if(Devices[Unit].sValue != str(mval)):
+                if(Devices[iUnit].sValue != str(mval)):
                     Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
                 else:
                     Domoticz.Error(str(mval))
                except Exception as e:
                 Domoticz.Debug(str(e))
-                return False
-
-
-               #try:
-               # mval = float(str(message).strip())
-               #except:
-               # mval = str(message).strip()
-               #try:
-               # Devices[20].Update(nValue=0,sValue=str(mval),TimedOut=0)
-               #except Exception as e:
-               # Domoticz.Debug(str(e))
-               # return False
-
-               pilot = float(str(message).strip())
-               Domoticz.Debug("pilot: "+str(pilot))  
-               return False		
+                return False  	
+              elif subval=="srssi":
+               self.read_time = time.time()
+               try:
+                mval = float(str(message).strip())   
+               except:
+                mval = str(message).strip()
+               try:
+                if(Devices[iUnit].sValue != str(mval)):
+                    Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
+                else:
+                    Domoticz.Error(str(mval))
+               except Exception as e:
+                Domoticz.Debug(str(e))
+                return False 
+              elif subval=="uptime":
+               self.read_time = time.time()
+               try:
+                mval = float(str(message).strip())   
+               except:
+                mval = str(message).strip()
+               try:
+                if(Devices[iUnit].sValue != str(mval)):
+                    Devices[iUnit].Update(nValue=0,sValue=str(mval),TimedOut=0)
+                else:
+                    Domoticz.Error(str(mval))
+               except Exception as e:
+                Domoticz.Debug(str(e))
+                return False                 
               elif subval=="amp":
                self.read_time = time.time()
                try:
@@ -449,7 +473,7 @@ class BasePlugin:
              self.mqttClient.publish(rapiTopic, divertmode)
             except Exception as e:
              Domoticz.Debug(str(e))               
-        #if(Devices[Unit].DeviceID=="PilotSet"):
+        #if(Devices[Unit].DeviceID=="SetPointSet"):
         #   #Domoticz.Error(Devices[Unit].sValue)
         #   value = int(float(Level))
         #   rapiTopic = self.base_topic + "/rapi/in/$SC"
@@ -500,7 +524,7 @@ class BasePlugin:
       if(self.elapsed_time>80 and self.elapsed_time<90):
         Domoticz.Error("Last data: "+str(self.elapsed_time))
         for Device in Devices:
-            if(Devices[Device].DeviceID=='Amps' or Devices[Device].DeviceID=='Energy' or Devices[Device].DeviceID=='Temp' or Devices[Device].DeviceID=='Pilot'  ):  
+            if(Devices[Device].DeviceID=='Amps' or Devices[Device].DeviceID=='Energy' or Devices[Device].DeviceID=='Temp' or Devices[Device].DeviceID=='SetPoint'  ):  
                 Devices[Device].Update(nValue=Devices[Device].nValue,sValue=Devices[Device].sValue,TimedOut=1) 
 
 global _plugin
